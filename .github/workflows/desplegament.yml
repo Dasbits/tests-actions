@@ -1,24 +1,20 @@
-name: Desplegament a Producció
-
-on:
-  push:
-    branches:
-      - main
-
+name: Preparant per producció
+run-name: ${{ github.actor }} està pujant l'aplicació a PROD  🚀
+on: [push]
 jobs:
-  desplegament:
+  Pujar-a-produccio-amb-SCP:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout del codi
-        uses: actions/checkout@v3
+      - name: Obtenint el codi del respositori
+        uses: actions/checkout@v4
 
-      - name: Desplegament via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          port: ${{ secrets.SSH_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            rsync -avz --delete ./web/ ${{ secrets.SSH_TARGET }}
+      - name: scp a produccio
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/prod_key.pem
+          chmod 600 ~/prod_key.pem
+          cd ${{ github.workspace }}
+          echo "Action desplegant a produccio" > ./web/last_deploy.txt
+          date >> ./web/last_deploy.txt
+          scp -r -o stricthostkeychecking=no -o UserKnownHostsFile=/dev/null -i "~/prod_key.pem" ./web/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/web/tests-actions.a20davsalsos.dam.inspedralbes.cat/public_html/
+          
+      - run: echo "🍏 This job's status is ${{ job.status }}."
